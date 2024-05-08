@@ -4,37 +4,43 @@ import {usuarios} from "./../controllers/authentication.controller.js";
 
 dotenv.config();
 
-function soloAdmin(req,res,next){
-  const logueado = revisarCookie(req);
-  if(logueado) return next();
-  return res.redirect("/")
-}
+function revisarCookie(req) {
+  try {
+      const cookieJWT = req.cookies.jwt;
+      if (!cookieJWT) return false;
 
-function soloPublico(req,res,next){
-  const logueado = revisarCookie(req);
-  if(!logueado) return next();
-  return res.redirect("/admin")
-}
-
-function revisarCookie(req){
-  try{
-    const cookieJWT = req.headers.cookie.split("; ").find(cookie => cookie.startsWith("jwt=")).slice(4);
-    const decodificada = jsonwebtoken.verify(cookieJWT,process.env.JWT_SECRET);
-    console.log(decodificada)
-    const usuarioAResvisar = usuarios.find(usuario => usuario.user === decodificada.user);
-    console.log(usuarioAResvisar)
-    if(!usuarioAResvisar){
-      return false
-    }
-    return true;
-  }
-  catch{
-    return false;
+      const decodificada = jsonwebtoken.verify(cookieJWT, process.env.JWT_SECRET);
+      const usuarioAResvisar = usuarios.find(usuario => usuario.user === decodificada.user);
+      return usuarioAResvisar; // Devuelve el usuario decodificado
+  } catch (error) {
+      return false;
   }
 }
-
 
 export const methods = {
-  soloAdmin,
-  soloPublico,
-}
+  soloAdmin: (req, res, next) => {
+      const usuario = revisarCookie(req);
+      if (!usuario || usuario.role !== "admin") {
+          return res.redirect("/");
+      }
+      next();
+  },
+  soloPublico: (req, res, next) => {
+      const usuario = revisarCookie(req);
+      if (usuario) {
+          if (usuario.role === "admin") {
+              return res.redirect("/admin");
+          } else if (usuario.role === "user") {
+              return res.redirect("/user");
+          }
+      }
+      next();
+  },
+  soloUser: (req, res, next) => {
+      const usuario = revisarCookie(req);
+      if (!usuario || usuario.role !== "user") {
+          return res.redirect("/");
+      }
+      next();
+  }
+};

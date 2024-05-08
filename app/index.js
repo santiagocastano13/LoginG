@@ -9,7 +9,7 @@ import {methods as authorization} from "./middlewares/authorization.js";
 
 //Server
 const app = express();
-app.set("port",4000);
+app.set("port",3000);
 app.listen(app.get("port"));
 console.log("Servidor corriendo en puerto",app.get("port"));
 
@@ -19,9 +19,14 @@ app.use(express.json());
 app.use(cookieParser())
 
 
-//Rutas
+//Rutas publicas
 app.get("/",authorization.soloPublico, (req,res)=> res.sendFile(__dirname + "/pages/login.html"));
 app.get("/register",authorization.soloPublico,(req,res)=> res.sendFile(__dirname + "/pages/register.html"));
-app.get("/admin",authorization.soloAdmin,(req,res)=> res.sendFile(__dirname + "/pages/admin/admin.html"));
+
+// Rutas protegidas por roles
+app.get("/admin", authorization.soloAdmin, (req, res) => res.sendFile(__dirname + "/pages/admin/admin.html"));
+app.get("/user", authorization.soloUser, (req, res) => res.sendFile(__dirname + "/pages/user.html"));
+
+
 app.post("/api/login",authentication.login);
 app.post("/api/register",authentication.register);

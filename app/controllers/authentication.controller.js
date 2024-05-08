@@ -5,38 +5,39 @@ import dotenv from "dotenv";
 dotenv.config();
 
 export const usuarios = [{
-  user: "a",
+  user: "santiago",
   email: "a@a.com",
-  password: "$2a$05$nLY2It8riku2vwwDIINdgO/XIyPXRg1Gn9LFgnhwKqC4TwcAwEUL2"
+  password: "$2a$05$AhpXQ1asl8wwcDRohvwTn.Iye1gx2LyBqnzuhnrzAuk3OVU0123Ri",
+  role: "admin" 
 }]
 
 
-async function login(req,res){
-  console.log(req.body);
-  const user = req.body.user;
-  const password = req.body.password;
-  if(!user || !password){
-    return res.status(400).send({status:"Error",message:"Los campos están incompletos"})
+async function login(req, res) {
+  const { user, password } = req.body;
+  if (!user || !password) {
+      return res.status(400).send({ status: "Error", message: "Los campos están incompletos" });
   }
   const usuarioAResvisar = usuarios.find(usuario => usuario.user === user);
-  if(!usuarioAResvisar){
-    return res.status(400).send({status:"Error",message:"Error durante login"})
+  if (!usuarioAResvisar) {
+      return res.status(400).send({ status: "Error", message: "Error durante login" });
   }
-  const loginCorrecto = await bcryptjs.compare(password,usuarioAResvisar.password);
-  if(!loginCorrecto){
-    return res.status(400).send({status:"Error",message:"Error durante login"})
+  const loginCorrecto = await bcryptjs.compare(password, usuarioAResvisar.password);
+  if (!loginCorrecto) {
+      return res.status(400).send({ status: "Error", message: "Error durante login" });
   }
   const token = jsonwebtoken.sign(
-    {user:usuarioAResvisar.user},
-    process.env.JWT_SECRET,
-    {expiresIn:process.env.JWT_EXPIRATION});
+      { user: usuarioAResvisar.user },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRATION }
+  );
 
-    const cookieOption = {
+  const cookieOption = {
       expires: new Date(Date.now() + process.env.JWT_COOKIE_EXPIRES * 24 * 60 * 60 * 1000),
       path: "/"
-    }
-    res.cookie("jwt",token,cookieOption);
-    res.send({status:"ok",message:"Usuario loggeado",redirect:"/admin"});
+  }
+  res.cookie("jwt", token, cookieOption);
+  const redirectPath = (usuarioAResvisar.role === "admin") ? "/admin" : "/user";
+  res.send({ status: "ok", message: "Usuario loggeado", redirect: redirectPath });
 }
 
 async function register(req,res){
@@ -53,7 +54,7 @@ async function register(req,res){
   const salt = await bcryptjs.genSalt(5);
   const hashPassword = await bcryptjs.hash(password,salt);
   const nuevoUsuario ={
-    user, email, password: hashPassword
+    user, email, password: hashPassword, role: "user"
   }
   usuarios.push(nuevoUsuario);
   console.log(usuarios);
